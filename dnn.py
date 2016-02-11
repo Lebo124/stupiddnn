@@ -5,15 +5,12 @@
 #
 # Distributed under the terms of the BSD License.
 
-# shamelessly taken and modified by Howon Lee in 2016, cuz BSD allows that
+# shamelessly taken and basically completely modified by Howon Lee in 2016, cuz BSD allows that
 # only Howon doesn't know which version of the BSD license Howon should replicate
 # so whatever version NP Rougier wanted, consider it replicated
 # dont think that NP Rougier has heard of Howon, because he prolly hasn't
 # nor vice versa, now that Howon thinks about it
 # -----------------------------------------------------------------------------
-
-# This is an implementation of the multi-layer perceptron with retropropagation
-# learning.
 
 # modified by Howon Lee to make a point about the fractal nature of backprop
 # play with the params as you like
@@ -194,10 +191,10 @@ def test_network(net, samples):
     # lots of less naive things out there
     return float(correct) / float(total)
 
-def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, hidden_units):
+def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, architecture):
     total_begin_time = time.clock()
     samples, dims = create_mnist_samples()
-    network = DNN(dims, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, 10)
+    network = DNN(*architecture)
     for i in xrange(num_burnin):
         n = np.random.randint(samples.size)
         network.propagate_forward(samples['input'][n])
@@ -219,9 +216,8 @@ def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, hidden
                 prev_time = time.clock()
                 network.check_sparsity()
                 print >> sys.stderr, "==============="
-            n = np.random.randint(samples.size)
-            network.propagate_forward(samples['input'][n])
-            network.propagate_backward(samples['output'][n])
+            network.propagate_forward(samples['input'][i])
+            network.propagate_backward(samples['output'][i])
         # was also expanding, but that doesn't work as well
         network.check_sparsity()
     print "test: ", test_network(network, samples[40000:40500])
@@ -234,4 +230,7 @@ def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, hidden
         plt.show()
 
 if __name__ == '__main__':
-    test_sparsify(num_epochs=1, num_sparsifications=0, num_burnin=5, num_iters=5, hidden_units=40)
+    hidden_units = 40
+    architecture = [784] + [hidden_units] * 10 + [10]
+    print architecture
+    test_sparsify(num_epochs=1, num_sparsifications=0, num_burnin=5, num_iters=3000, architecture=architecture)
