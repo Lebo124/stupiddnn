@@ -75,8 +75,8 @@ class DNN:
         self.has_sparsified = False
         for i in range(n-1):
             new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * math.pow(math.e, -(n-i-1))
-            print str(i) + " initialized"
-            print "max on this layer: ", np.max(new_weights)
+            print >> sys.stderr, str(i) + " initialized"
+            print >> sys.stderr, "max on this layer: ", np.max(new_weights)
             self.weights.append(sci_sp.csc_matrix(new_weights))
             self.sparsifiers.append(sci_sp.coo_matrix(np.ones_like(new_weights)))
 
@@ -142,14 +142,21 @@ class DNN:
 
     def sparsify(self, sparsity_percentage):
         self.has_sparsified = True
-        for i in range(len(self.weights)-1): # not the softmax layer
-            # so the 50th percentile of existing weights above 0
-            # leave it as np.percentile, not median, cuz experimentation
-            # add to sparsifier
-            # kill based upon sparsifier, but in the actual backprop
+        for i in range(len(self.weights)-1):
             all_weights = np.abs(self.weights[i].toarray().ravel())
             pos_weights = all_weights[all_weights > 0]
             thresh = np.percentile(pos_weights, sparsity_percentage)
+            new_sparsifier = self.sparsifiers[i].toarray()
+            self.sparsifiers[i] = sci_sp.coo_matrix(np.logical_and(np.abs(self.weights[i].toarray()) > thresh, new_sparsifier))
+            self.weights[i][np.abs(self.weights[i].toarray()) < thresh] = 0
+            self.weights[i].eliminate_zeros()
+
+    def total_sparsify(self, sparsity_percentage):
+        self.has_sparsified = True
+        all_weights = np.abs(np.hstack(tuple([weight.toarray().ravel() for weight in self.weights])))
+        pos_weights = all_weights[all_weights > 0]
+        thresh = np.percentile(pos_weights, sparsity_percentage)
+        for i in range(len(self.weights)-1):
             new_sparsifier = self.sparsifiers[i].toarray()
             self.sparsifiers[i] = sci_sp.coo_matrix(np.logical_and(np.abs(self.weights[i].toarray()) > thresh, new_sparsifier))
             self.weights[i][np.abs(self.weights[i].toarray()) < thresh] = 0
@@ -215,7 +222,7 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
     prev_time = time.clock()
     for epoch in xrange(num_epochs):
         for i in xrange(num_iters):
-            if i % 100 == 0:
+            if i % 200 == 0:
                 print >> sys.stderr, "==============="
                 print >> sys.stderr, "sample: ", i, " / ", num_iters, " time: ", time.clock()
                 print >> sys.stderr, "epoch: ", epoch, " time taken: ", time.clock() - prev_time
@@ -233,6 +240,6 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
 
 if __name__ == '__main__':
     hidden_units = 100
-    architecture = [784] + [hidden_units] * 2 + [10]
+    architecture = [784] + [hidden_units] * 4 + [10]
     print architecture
-    test_sparsify(num_epochs=1, sparsity_percentage=99, num_burnin=50, num_iters=20000, architecture=architecture)
+    test_sparsify(num_epochs=1, sparsity_percentage=80, num_burnin=60, num_iters=40000, architecture=architecture)
