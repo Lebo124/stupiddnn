@@ -202,11 +202,11 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
     samples, dims = create_mnist_samples()
     network = DNN(*architecture)
     for i in xrange(num_burnin):
-        n = np.random.randint(samples.size)
+        n = np.random.randint(40000)
         network.propagate_forward(samples['input'][n])
         network.propagate_backward(samples['output'][n], lrate=0.01)
-        if i % 100 == 0:
-            print >> sys.stderr, "burnin: ", i
+        if i % 20 == 0:
+            print >> sys.stderr, "burnin: ", i, time.clock()
         # learn really really fast
     for idx, weight in enumerate(network.weights[:3]):
         print np.max(np.abs(weight.toarray().ravel()))
@@ -242,4 +242,4 @@ if __name__ == '__main__':
     hidden_units = 200
     architecture = [784] + [hidden_units] * 2 + [10]
     print architecture
-    test_sparsify(num_epochs=1, sparsity_percentage=97, num_burnin=600, num_iters=40000, architecture=architecture)
+    test_sparsify(num_epochs=1, sparsity_percentage=97, num_burnin=2000, num_iters=40000, architecture=architecture)
