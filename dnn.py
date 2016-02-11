@@ -95,7 +95,7 @@ class DNN:
         # Return output
         return self.layers[-1]
 
-    def propagate_backward(self, target, lrate=0.01):
+    def propagate_backward(self, target, lrate=0.001):
         ''' Back propagate error related to target using lrate. '''
         begin_time = time.clock()
 
@@ -204,7 +204,7 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
     for i in xrange(num_burnin):
         n = np.random.randint(samples.size)
         network.propagate_forward(samples['input'][n])
-        network.propagate_backward(samples['output'][n], lrate=0.1)
+        network.propagate_backward(samples['output'][n], lrate=0.01)
         if i % 100 == 0:
             print >> sys.stderr, "burnin: ", i
         # learn really really fast
@@ -233,13 +233,13 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
                 print >> sys.stderr, test_network(network, samples[40500:40520])
                 print >> sys.stderr, "==============="
             network.propagate_forward(samples['input'][i])
-            network.propagate_backward(samples['output'][i], lrate=0.1)
+            network.propagate_backward(samples['output'][i])
         # was also expanding, but that doesn't work as well
         network.check_sparsity()
     print "test: ", test_network(network, samples[40000:40500])
 
 if __name__ == '__main__':
-    hidden_units = 100
-    architecture = [784] + [hidden_units] * 4 + [10]
+    hidden_units = 200
+    architecture = [784] + [hidden_units] * 2 + [10]
     print architecture
-    test_sparsify(num_epochs=1, sparsity_percentage=80, num_burnin=60, num_iters=40000, architecture=architecture)
+    test_sparsify(num_epochs=1, sparsity_percentage=97, num_burnin=600, num_iters=40000, architecture=architecture)
