@@ -75,8 +75,8 @@ class DNN:
         self.has_sparsified = False
         for i in range(n-1):
             new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * math.pow(1.1, -(n-i-1))
-            print -(n-i-1)
-            print np.max(new_weights)
+            print str(i) + " initialized"
+            print "max on this layer: ", np.max(new_weights)
             self.weights.append(sci_sp.csc_matrix(new_weights))
             self.sparsifiers.append(sci_sp.coo_matrix(np.ones_like(new_weights)))
 
@@ -141,14 +141,14 @@ class DNN:
 
     def sparsify(self):
         self.has_sparsified = True
+        thresh = np.percentile(
+                            np.abs(
+                                self.weights[i].toarray()[np.abs(self.weights[i].toarray()) > 0]
+                            ), 50
+                        )
         for i in range(len(self.weights)-1): # not the softmax layer
             # so the 50th percentile of existing weights above 0
             # leave it as np.percentile, not median, cuz experimentation
-            thresh = np.percentile(
-                               np.abs(
-                                   self.weights[i].toarray()[np.abs(self.weights[i].toarray()) > 0]
-                                ), 50
-                              )
             # add to sparsifier
             # kill based upon sparsifier, but in the actual backprop
             new_sparsifier = self.sparsifiers[i].toarray()
@@ -202,6 +202,14 @@ def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, archit
         # learn really really fast
     for x in xrange(num_sparsifications):
         network.sparsify()
+    for idx, weight in enumerate(network.weights[:3]):
+        print np.max(np.abs(weight.toarray().ravel()))
+        plt.close()
+        plt.hist(np.abs(weight.toarray().ravel()))
+        plt.gca().set_xscale("log")
+        plt.gca().set_yscale("log")
+        plt.title("layer histogram " + str(idx))
+        plt.show()
     print >> sys.stderr, "burnin finished"
     network.check_sparsity()
     prev_time = time.clock()
@@ -221,16 +229,9 @@ def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, archit
         # was also expanding, but that doesn't work as well
         network.check_sparsity()
     print "test: ", test_network(network, samples[40000:40500])
-    for weight in network.weights:
-        print np.max(np.abs(weight.toarray().ravel()))
-        plt.close()
-        plt.hist(np.abs(weight.toarray().ravel()))
-        plt.gca().set_xscale("log")
-        plt.gca().set_yscale("log")
-        plt.show()
 
 if __name__ == '__main__':
     hidden_units = 40
-    architecture = [784] + [hidden_units] * 10 + [10]
+    architecture = [784] + [hidden_units] * 100 + [10]
     print architecture
-    test_sparsify(num_epochs=1, num_sparsifications=0, num_burnin=5, num_iters=3000, architecture=architecture)
+    test_sparsify(num_epochs=1, num_sparsifications=0, num_burnin=30, num_iters=3000, architecture=architecture)
