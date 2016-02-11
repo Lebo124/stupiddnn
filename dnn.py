@@ -95,7 +95,7 @@ class DNN:
         # Return output
         return self.layers[-1]
 
-    def propagate_backward(self, target, lrate=0.001):
+    def propagate_backward(self, target, lrate=0.00001):
         ''' Back propagate error related to target using lrate. '''
         begin_time = time.clock()
 
@@ -239,7 +239,7 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
     print "test: ", test_network(network, samples[40000:40500])
 
 if __name__ == '__main__':
-    hidden_units = 200
+    hidden_units = 100
     architecture = [784] + [hidden_units] * 10 + [10]
     print architecture
-    test_sparsify(num_epochs=1, sparsity_percentage=95, num_burnin=2000, num_iters=40000, architecture=architecture)
+    test_sparsify(num_epochs=10, sparsity_percentage=95, num_burnin=2000, num_iters=40000, architecture=architecture)
