@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -----------------------------------------------------------------------------
-# Multi-layer perceptron
+# DNN
 # Copyright (C) 2011  Nicolas P. Rougier
 #
 # Distributed under the terms of the BSD License.
@@ -26,6 +26,7 @@ import cPickle
 import collections
 import time
 import sys
+import math
 import random
 import gzip
 
@@ -51,9 +52,8 @@ def sparse_outer(fst, snd, to_calc):
         new[row_idx, col_idx] = fst[0, row_idx] * snd[0, col_idx]
     return sci_sp.csr_matrix(new)
 
-class MLP:
+class DNN:
     '''
-    Multi-layer perceptron class.
     This is used via SGD only in the MNIST thing Howon rigged up
     '''
 
@@ -77,7 +77,9 @@ class MLP:
         self.sparsifiers = []
         self.has_sparsified = False
         for i in range(n-1):
-            new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * 0.00001
+            new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * math.pow(1.1, -(n-i-1))
+            print -(n-i-1)
+            print np.max(new_weights)
             self.weights.append(sci_sp.csc_matrix(new_weights))
             self.sparsifiers.append(sci_sp.coo_matrix(np.ones_like(new_weights)))
 
@@ -195,12 +197,12 @@ def test_network(net, samples):
 def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, hidden_units):
     total_begin_time = time.clock()
     samples, dims = create_mnist_samples()
-    network = MLP(dims, hidden_units, 10)
+    network = DNN(dims, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, hidden_units, 10)
     for i in xrange(num_burnin):
         n = np.random.randint(samples.size)
         network.propagate_forward(samples['input'][n])
-        network.propagate_backward(samples['output'][n])
-    # network.stupid_sparsify()
+        network.propagate_backward(samples['output'][n], lrate=2.5)
+        # learn really really fast
     for x in xrange(num_sparsifications):
         network.sparsify()
     print >> sys.stderr, "burnin finished"
@@ -222,15 +224,14 @@ def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, hidden
             network.propagate_backward(samples['output'][n])
         # was also expanding, but that doesn't work as well
         network.check_sparsity()
-    print "num_epochs: ", str(num_epochs), " num_sparsifications: ", str(num_sparsifications), " num_burnin: ", str(num_burnin), " num_iters: ", str(num_iters), " hidden_units: ", str(hidden_units)
-    print "accuracy: ", test_network(network, samples[40000:40500])
-    print "total time: ", str(time.clock() - total_begin_time)
+    print "test: ", test_network(network, samples[40000:40500])
+    for weight in network.weights:
+        print np.max(np.abs(weight.toarray().ravel()))
+        plt.close()
+        plt.hist(np.abs(weight.toarray().ravel()))
+        plt.gca().set_xscale("log")
+        plt.gca().set_yscale("log")
+        plt.show()
 
 if __name__ == '__main__':
-    for x in [2,4,8,16,32,64]:
-        test_sparsify(num_epochs=1, num_sparsifications=0, num_burnin=200, num_iters=30000, hidden_units=x)
-    print "now sparsifying..."
-    for x in [0,1,2,3,4,5]:
-        test_sparsify(num_epochs=1, num_sparsifications=x, num_burnin=200, num_iters=30000, hidden_units=128)
-    for x, y in zip([0,1,2,3,4,5], [4,8,16,32,64,128]):
-        test_sparsify(num_epochs=1, num_sparsifications=x, num_burnin=200, num_iters=30000, hidden_units=y)
+    test_sparsify(num_epochs=1, num_sparsifications=0, num_burnin=5, num_iters=5, hidden_units=40)
