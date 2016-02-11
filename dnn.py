@@ -74,7 +74,7 @@ class DNN:
         self.sparsifiers = []
         self.has_sparsified = False
         for i in range(n-1):
-            new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * math.pow(1.1, -(n-i-1))
+            new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * math.pow(math.e, -(n-i-1))
             print str(i) + " initialized"
             print "max on this layer: ", np.max(new_weights)
             self.weights.append(sci_sp.csc_matrix(new_weights))
@@ -129,6 +129,7 @@ class DNN:
         for i in range(len(self.weights)):
             print >> sys.stderr, len(self.weights[i].indices), " / ",\
                     reduce(lambda x, y: x * y, self.weights[i].shape)
+            print >> sys.stderr, np.mean(np.abs(self.weights[i].toarray().ravel()))
 
     def random_sparsify(self):
         # experimentation
@@ -139,18 +140,16 @@ class DNN:
             self.weights[i][self.sparsifiers[i]] = 0
             self.weights[i].eliminate_zeros()
 
-    def sparsify(self):
+    def sparsify(self, sparsity_percentage):
         self.has_sparsified = True
-        thresh = np.percentile(
-                            np.abs(
-                                self.weights[i].toarray()[np.abs(self.weights[i].toarray()) > 0]
-                            ), 50
-                        )
         for i in range(len(self.weights)-1): # not the softmax layer
             # so the 50th percentile of existing weights above 0
             # leave it as np.percentile, not median, cuz experimentation
             # add to sparsifier
             # kill based upon sparsifier, but in the actual backprop
+            all_weights = np.abs(self.weights[i].toarray().ravel())
+            pos_weights = all_weights[all_weights > 0]
+            thresh = np.percentile(pos_weights, sparsity_percentage)
             new_sparsifier = self.sparsifiers[i].toarray()
             self.sparsifiers[i] = sci_sp.coo_matrix(np.logical_and(np.abs(self.weights[i].toarray()) > thresh, new_sparsifier))
             self.weights[i][np.abs(self.weights[i].toarray()) < thresh] = 0
@@ -191,17 +190,17 @@ def test_network(net, samples):
     # lots of less naive things out there
     return float(correct) / float(total)
 
-def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, architecture):
+def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, architecture):
     total_begin_time = time.clock()
     samples, dims = create_mnist_samples()
     network = DNN(*architecture)
     for i in xrange(num_burnin):
         n = np.random.randint(samples.size)
         network.propagate_forward(samples['input'][n])
-        network.propagate_backward(samples['output'][n], lrate=2.5)
+        network.propagate_backward(samples['output'][n], lrate=0.1)
+        if i % 100 == 0:
+            print >> sys.stderr, "burnin: ", i
         # learn really really fast
-    for x in xrange(num_sparsifications):
-        network.sparsify()
     for idx, weight in enumerate(network.weights[:3]):
         print np.max(np.abs(weight.toarray().ravel()))
         plt.close()
@@ -210,6 +209,7 @@ def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, archit
         plt.gca().set_yscale("log")
         plt.title("layer histogram " + str(idx))
         plt.show()
+    network.sparsify(sparsity_percentage)
     print >> sys.stderr, "burnin finished"
     network.check_sparsity()
     prev_time = time.clock()
@@ -223,15 +223,16 @@ def test_sparsify(num_epochs, num_sparsifications, num_burnin, num_iters, archit
                     print >> sys.stderr, "last bp_time: ", network.bp_times[-1]
                 prev_time = time.clock()
                 network.check_sparsity()
+                print >> sys.stderr, test_network(network, samples[40500:40520])
                 print >> sys.stderr, "==============="
             network.propagate_forward(samples['input'][i])
-            network.propagate_backward(samples['output'][i])
+            network.propagate_backward(samples['output'][i], lrate=0.1)
         # was also expanding, but that doesn't work as well
         network.check_sparsity()
     print "test: ", test_network(network, samples[40000:40500])
 
 if __name__ == '__main__':
-    hidden_units = 40
-    architecture = [784] + [hidden_units] * 100 + [10]
+    hidden_units = 100
+    architecture = [784] + [hidden_units] * 2 + [10]
     print architecture
-    test_sparsify(num_epochs=1, num_sparsifications=0, num_burnin=30, num_iters=3000, architecture=architecture)
+    test_sparsify(num_epochs=1, sparsity_percentage=99, num_burnin=50, num_iters=20000, architecture=architecture)
