@@ -74,7 +74,10 @@ class DNN:
         self.sparsifiers = []
         self.has_sparsified = False
         for i in range(n-1):
-            new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * math.pow(math.e, -(n-i-1))
+            # new_weights = (2 * (npr.random((self.layers[i].size, self.layers[i+1].size))) - 1) * math.pow(math.e, -(n-i-1))
+            new_weights = (2 * npr.random((self.layers[i].size, self.layers[i+1].size)) - 1)
+            new_weights *= np.sqrt(6)
+            new_weights /= np.sqrt(self.layers[i].size + self.layers[i+1].size)
             print >> sys.stderr, str(i) + " initialized"
             print >> sys.stderr, "max on this layer: ", np.max(new_weights)
             self.weights.append(sci_sp.csc_matrix(new_weights))
@@ -239,7 +242,7 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
     print "test: ", test_network(network, samples[40000:40500])
 
 if __name__ == '__main__':
-    hidden_units = 100
-    architecture = [784] + [hidden_units] * 2 + [10]
+    hidden_units = 200
+    architecture = [784] + [hidden_units] * 10 + [10]
     print architecture
-    test_sparsify(num_epochs=10, sparsity_percentage=95, num_burnin=2000, num_iters=40000, architecture=architecture)
+    test_sparsify(num_epochs=1, sparsity_percentage=97, num_burnin=2000, num_iters=40000, architecture=architecture)
