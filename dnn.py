@@ -204,21 +204,24 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
     total_begin_time = time.clock()
     samples, dims = create_mnist_samples()
     network = DNN(*architecture)
-    for i in xrange(num_burnin):
-        n = np.random.randint(40000)
-        network.propagate_forward(samples['input'][n])
-        network.propagate_backward(samples['output'][n], lrate=0.01)
-        if i % 20 == 0:
-            print >> sys.stderr, "burnin: ", i, time.clock()
+    burnin_iter = 0
+    while test_network(network, samples[40500:40520]) <= num_burnin:
+        for x in xrange(50):
+            burnin_iter += 1
+            print >> sys.stderr, burnin_iter, time.clock()
+            n = np.random.randint(40000)
+            network.propagate_forward(samples['input'][n])
+            network.propagate_backward(samples['output'][n], lrate=0.01)
+        print >> sys.stderr, "burnin: ", burnin_iter, time.clock(), test_network(network, samples[40500:40520])
         # learn really really fast
-    for idx, weight in enumerate(network.weights[:3]):
-        print np.max(np.abs(weight.toarray().ravel()))
-        plt.close()
-        plt.hist(np.abs(weight.toarray().ravel()))
-        plt.gca().set_xscale("log")
-        plt.gca().set_yscale("log")
-        plt.title("layer histogram " + str(idx))
-        plt.show()
+    # for idx, weight in enumerate(network.weights[:3]):
+    #     print np.max(np.abs(weight.toarray().ravel()))
+    #     plt.close()
+    #     plt.hist(np.abs(weight.toarray().ravel()))
+    #     plt.gca().set_xscale("log")
+    #     plt.gca().set_yscale("log")
+    #     plt.title("layer histogram " + str(idx))
+    #     plt.show()
     network.sparsify(sparsity_percentage)
     print >> sys.stderr, "burnin finished"
     network.check_sparsity()
@@ -243,6 +246,6 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
 
 if __name__ == '__main__':
     hidden_units = 200
-    architecture = [784] + [hidden_units] * 10 + [10]
+    architecture = [784] + [hidden_units] * 2 + [10]
     print architecture
-    test_sparsify(num_epochs=1, sparsity_percentage=97, num_burnin=2000, num_iters=40000, architecture=architecture)
+    test_sparsify(num_epochs=1, sparsity_percentage=0, num_burnin=0.6, num_iters=40000, architecture=architecture)
