@@ -240,6 +240,6 @@ def test_sparsify(num_epochs, sparsity_percentage, num_burnin, num_iters, archit
 
 if __name__ == '__main__':
     hidden_units = 100
-    architecture = [784] + [hidden_units] * 10 + [10]
+    architecture = [784] + [hidden_units] * 2 + [10]
     print architecture
     test_sparsify(num_epochs=10, sparsity_percentage=95, num_burnin=2000, num_iters=40000, architecture=architecture)
