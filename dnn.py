@@ -228,20 +228,12 @@ def test_sparsify(num_epochs, sparsity_percentages, num_burnin, num_iters, archi
     network = DNN(*architecture)
     burnin_iter = 0
     while test_network(network, samples[40500:40520]) <= num_burnin:
-        burnin_iter += 1
-        n = np.random.randint(40000)
-        network.propagate_forward(samples['input'][n])
-        network.propagate_backward(samples['output'][n], lrate=0.05)
+        for x in xrange(50):
+            burnin_iter += 1
+            n = np.random.randint(40000)
+            network.propagate_forward(samples['input'][n])
+            network.propagate_backward(samples['output'][n], lrate=0.05)
         print >> sys.stderr, "burnin: ", burnin_iter, time.clock(), test_network(network, samples[40500:40520])
-        # learn really really fast
-    # for idx, weight in enumerate(network.weights[:3]):
-    #     print np.max(np.abs(weight.toarray().ravel()))
-    #     plt.close()
-    #     plt.hist(np.abs(weight.toarray().ravel()))
-    #     plt.gca().set_xscale("log")
-    #     plt.gca().set_yscale("log")
-    #     plt.title("layer histogram " + str(idx))
-    #     plt.show()
     print >> sys.stderr, "burnin finished"
     network.check_sparsity()
     # network.sparsify(sparsity_percentage)
@@ -267,7 +259,7 @@ def test_sparsify(num_epochs, sparsity_percentages, num_burnin, num_iters, archi
 
 if __name__ == '__main__':
     hidden_units = 200
-    architecture = [784] + [hidden_units] * 50 + [10]
-    sparsities = [97] + [80] * 50
+    architecture = [784] + [hidden_units] * 1 + [10]
+    sparsities = [95] + [90] * 1
     print architecture
     test_sparsify(num_epochs=1, sparsity_percentages=sparsities, num_burnin=0.5, num_iters=40000, architecture=architecture)
