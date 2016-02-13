@@ -270,11 +270,14 @@ def smash_networks(network_list):
     for network in network_list:
         for layer in network.layers:
             print layer.size
-    # new_architecture = some shit ######3
-    # total_net = MLP(some shit) ############
+    new_architecture = []
+    new_architecture.append(network_list[0].layers[0].size)
+    for network in network_list:
+        new_architecture.append(network.layers[-2].size)
+    new_architecture.append(network_list[-1].layers[-1].size)
+    total_net = MLP(*new_architecture)
     # copy out the weights ##########
-    return None
-    # return total_net
+    return total_net
 
 def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num_iters, num_hiddens):
     # this has a different attitude towards "layers"
@@ -320,17 +323,12 @@ if __name__ == '__main__':
     # architecture = [784] + [hidden_units] * 1 + [10]
     sparsities = [90, 90]
     test_deep_layerwise_sparse(num_layers=3, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=60, num_hiddens=num_hiddens)
-    # 785
-    # 200
-    # 10
+    # 785 200 10
 
-    # 201
-    # 200
-    # 10
+    # 201 200 10
 
-    # 201
-    # 200
-    # 10
+    # 201 200 10
 
     # end result: 785 (201 or 200) (201 or 200) 200 10?
+    # end result: 785 200 200 200 10. Because you should be able to just kill the "added bias", ignore bias units
 
