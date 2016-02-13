@@ -256,46 +256,61 @@ def test_sparsify(num_epochs, sparsity_percentages, num_burnin, num_iters, archi
         network.check_sparsity()
     print "test: ", test_network(network, samples[40000:40500])
 
-def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num_iters, architecture):
+def make_hiddens(network, prev_hidden):
+    network_layer_size = network.layers[-2].size
+    new_hiddens = np.zeros(50000, dtype=[('input',  float, network_layer_size), ('output', float, 10)])
+    for i in xrange(prev_hidden.shape[0]):
+        network.propagate_forward(prev_hidden['input'][i])
+        new_hiddens[i] = network.layers[-2], prev_hidden['output'][i]
+    return new_hiddens
+
+def smash_networks(network_list):
+    new_architecture = some shit ######3
+    total_net = MLP(some shit) ############
+    copy out the weights ##########
+    return total_net
+
+def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num_iters, num_hiddens):
     # this has a different attitude towards "layers"
     total_begin_time = time.clock()
     samples, dims = create_mnist_samples()
-    all_MLPs = []
-    previous_hiddens = samples
-    network = MLP(*architecture)
-    burnin_iter = 0
-    while test_network(network, samples[40500:40520]) <= num_burnin:
-        for x in xrange(50):
-            burnin_iter += 1
-            n = np.random.randint(40000)
-            network.propagate_forward(samples['input'][n])
-            network.propagate_backward(samples['output'][n], lrate=0.05)
-        print >> sys.stderr, "burnin: ", burnin_iter, time.clock(), test_network(network, samples[40500:40520])
-    print >> sys.stderr, "burnin finished"
-    network.check_sparsity()
-    network.layer_sparsify(sparsity_percentages)
-    prev_time = time.clock()
-    for epoch in xrange(num_epochs):
+    networks = []
+    previous_hiddens = [samples]
+    for network_idx in range(num_layers):
+        curr_hiddens = previous_hiddens[-1]
+        curr_network = MLP(curr_hiddens['input'][0].size, num_hiddens, curr_hiddens['output'][0].size)
+        burnin_iter = 0
+        while test_network(curr_network, curr_hiddens[40000:40020]) <= num_burnin:
+            for x in xrange(50):
+                burnin_iter += 1
+                n = np.random.randint(40000)
+                curr_network.propagate_forward(curr_hiddens['input'][n])
+                curr_network.propagate_backward(curr_hiddens['output'][n], lrate=0.05)
+            print >> sys.stderr, "burnin: ", burnin_iter, time.clock(), test_network(curr_network, curr_hiddens[40000:40020])
+        print >> sys.stderr, "burnin finished"
+        curr_network.layer_sparsify(sparsity_percentages)
+        prev_time = time.clock()
         for i in xrange(num_iters):
-            if i % 20 == 0:
+            if i % 100 == 0:
                 print >> sys.stderr, "==============="
                 print >> sys.stderr, "sample: ", i, " / ", num_iters, " time: ", time.clock()
-                print >> sys.stderr, "epoch: ", epoch, " time taken: ", time.clock() - prev_time
-                if network.bp_times:
-                    print >> sys.stderr, "last bp_time: ", network.bp_times[-1]
+                print >> sys.stderr, "time taken: ", time.clock() - prev_time
+                print >> sys.stderr, "network: ", network_idx
+                if curr_network.bp_times:
+                    print >> sys.stderr, "last bp_time: ", curr_network.bp_times[-1]
                 prev_time = time.clock()
-                network.check_sparsity()
-                print >> sys.stderr, test_network(network, samples[40500:40520])
+                curr_network.check_sparsity()
+                print >> sys.stderr, test_network(curr_network, curr_hiddens[40500:40520])
                 print >> sys.stderr, "==============="
-            network.propagate_forward(samples['input'][i])
-            network.propagate_backward(samples['output'][i])
-        # was also expanding, but that doesn't work as well
-        network.check_sparsity()
-    print "test: ", test_network(network, samples[40000:40500])
+            curr_network.propagate_forward(curr_hiddens['input'][i])
+            curr_network.propagate_backward(curr_hiddens['output'][i])
+        previous_hiddens.append(curr_network, make_hiddens(curr_hiddens))
+        networks.append(curr_network)
+    final_network = smash_networks(networks)
+    print "test: ", test_network(final_network, samples[40020:45000])
 
 if __name__ == '__main__':
-    hidden_units = 200
-    architecture = [784] + [hidden_units] * 1 + [10]
-    sparsities = [95] + [90] * 1
-    print architecture
-    test_deep_layerwise_sparse(num_layers=10, sparsity_percentages=sparsities, num_burnin=0.5, num_iters=40000, architecture=architecture)
+    num_hiddens = 200
+    # architecture = [784] + [hidden_units] * 1 + [10]
+    sparsities = [90, 90]
+    test_deep_layerwise_sparse(num_layers=3, sparsity_percentages=sparsities, num_burnin=0.5, num_iters=6000, num_hiddens=num_hiddens)
