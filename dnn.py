@@ -63,8 +63,8 @@ class MLP:
 
         # Build layers
         self.layers = []
-        # Input layer (+1 unit for bias)
-        self.layers.append(sci_sp.csc_matrix(np.ones(self.shape[0]+1)))
+        # Input layer (add bias in the data stage)
+        self.layers.append(sci_sp.csc_matrix(np.ones(self.shape[0])))
         # Hidden layer(s) + output layer
         for i in range(1,n):
             self.layers.append(sci_sp.csc_matrix(np.ones(self.shape[i])))
@@ -88,7 +88,7 @@ class MLP:
         ''' Data is still in numpy format, hear? '''
 
         # Set input layer
-        self.layers[0][0, 0:-1] = data
+        self.layers[0][0, :] = data
 
         # Propagate from layer 0 to layer n-1 using sigmoid as activation function
         for i in range(1,len(self.shape)):
@@ -193,14 +193,17 @@ def onehots(n):
     return arr
 
 def create_mnist_samples(filename="mnist.pkl.gz"):
-    samples = np.zeros(50000, dtype=[('input',  float, 784), ('output', float, 10)])
+    samples = np.zeros(50000, dtype=[('input',  float, 785), ('output', float, 10)])
     with gzip.open(filename, "rb") as f:
         train_set, valid_set, test_set = cPickle.load(f)
         for x in xrange(50000):
-            samples[x] = train_set[0][x], onehots(train_set[1][x])
+            train_point = np.ones(785)
+            train_point[0:784] = train_set[0][x]
+            samples[x] = train_point, onehots(train_set[1][x])
     return samples, 784
 
 def create_cifar_samples(filename="cifar-10-batches-py/data_batch_1"):
+#### gotta add biases!
     samples = np.zeros(10000, dtype=[('input',  float, 3072), ('output', float, 10)])
     with open(filename, "rb") as f:
         cifar_dict = cPickle.load(f)
@@ -271,9 +274,8 @@ def smash_networks(network_list):
         for layer in network.layers:
             print layer.size
     new_architecture = []
-    new_architecture.append(network_list[0].layers[0].size)
     for network in network_list:
-        new_architecture.append(network.layers[-2].size)
+        new_architecture.append(network.layers[0].size)
     new_architecture.append(network_list[-1].layers[-1].size)
     total_net = MLP(*new_architecture)
     # copy out the weights ##########
@@ -315,14 +317,14 @@ def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num
             curr_network.propagate_backward(curr_hiddens['output'][i])
         previous_hiddens.append(make_hiddens(curr_network, curr_hiddens))
         networks.append(curr_network)
+        print "test: ", test_network(curr_network, samples[40020:45000])
     final_network = smash_networks(networks)
     # print "test: ", test_network(final_network, samples[40020:45000])
 
 if __name__ == '__main__':
     num_hiddens = 200
-    # architecture = [784] + [hidden_units] * 1 + [10]
     sparsities = [90, 90]
-    test_deep_layerwise_sparse(num_layers=3, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=60, num_hiddens=num_hiddens)
+    test_deep_layerwise_sparse(num_layers=3, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=8000, num_hiddens=num_hiddens)
     # 785 200 10
 
     # 201 200 10
@@ -331,4 +333,3 @@ if __name__ == '__main__':
 
     # end result: 785 (201 or 200) (201 or 200) 200 10?
     # end result: 785 200 200 200 10. Because you should be able to just kill the "added bias", ignore bias units
-
