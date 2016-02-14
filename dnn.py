@@ -280,7 +280,19 @@ def smash_networks(network_list):
         new_architecture.append(network.layers[0].size)
     new_architecture.append(network_list[-1].layers[-1].size)
     total_net = MLP(*new_architecture)
-    # copy out the weights ##########
+    for idx, network in enumerate(network_list):
+        new_weights = np.zeros((network.layers[0].size, network.layers[1].size + 1))
+        # just copying is bugging out on me?
+        for x in xrange(network.weights[0].shape[0]):
+            for y in xrange(network.weights[0].shape[1]):
+                new_weights[x,y] = network.weights[0][x,y]
+        total_net.weights[idx] = new_weights
+    last_net = network_list[-1]
+    last_weights = np.zeros((last_net.layers[1].size + 1, last_net.layers[2].size))
+    for x in xrange(last_net.weights[-1].shape[0]):
+        for y in xrange(last_net.weights[-1].shape[1]):
+            last_weights[x,y] = last_net.weights[-1][x,y]
+    total_net.weights[-1] = last_weights
     return total_net
 
 def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num_iters, num_hiddens):
@@ -319,14 +331,14 @@ def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num
             curr_network.propagate_backward(curr_hiddens['output'][i])
         previous_hiddens.append(make_hiddens(curr_network, curr_hiddens))
         networks.append(curr_network)
-        print "test: ", test_network(curr_network, samples[40020:45000])
+        print "test: ", test_network(curr_network, curr_hiddens[40020:45000])
     final_network = smash_networks(networks)
-    # print "test: ", test_network(final_network, samples[40020:45000])
+    print "test: ", test_network(final_network, samples[40020:45000])
 
 if __name__ == '__main__':
-    num_hiddens = 200
-    sparsities = [90, 90]
-    test_deep_layerwise_sparse(num_layers=3, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=8000, num_hiddens=num_hiddens)
+    num_hiddens = 400
+    sparsities = [95]
+    test_deep_layerwise_sparse(num_layers=3, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=5000, num_hiddens=num_hiddens)
     # 785 200 10
 
     # 201 200 10
