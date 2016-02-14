@@ -261,12 +261,14 @@ def test_sparsify(num_epochs, sparsity_percentages, num_burnin, num_iters, archi
 
 def make_hiddens(network, prev_hidden):
     network_layer_size = network.layers[-2].size
-    new_hiddens = np.zeros(50000, dtype=[('input',  float, network_layer_size), ('output', float, 10)])
+    new_hiddens = np.zeros(50000, dtype=[('input',  float, network_layer_size + 1), ('output', float, 10)]) # +1 for bias
     for i in xrange(prev_hidden.shape[0]):
         if i % 2000 == 0:
             print "hidden creation : ", i, " / ", prev_hidden.shape[0]
         network.propagate_forward(prev_hidden['input'][i])
-        new_hiddens[i] = network.layers[-2].toarray().ravel(), prev_hidden['output'][i]
+        curr_new_hidden = np.ones(network_layer_size + 1) #+1 for bias
+        curr_new_hidden[0:-1] = network.layers[-2].toarray().ravel()
+        new_hiddens[i] = curr_new_hidden, prev_hidden['output'][i]
     return new_hiddens
 
 def smash_networks(network_list):
