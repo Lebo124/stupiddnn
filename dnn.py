@@ -337,9 +337,9 @@ def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num
     print "test: ", test_network(final_network, samples[40020:45000])
 
 if __name__ == '__main__':
-    num_hiddens = 50
+    num_hiddens = 2000
     sparsities = [0]
-    test_deep_layerwise_sparse(num_layers=2, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=4000, num_hiddens=num_hiddens)
+    test_deep_layerwise_sparse(num_layers=10, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=40000, num_hiddens=num_hiddens)
     # 785 200 10
 
     # 201 200 10
