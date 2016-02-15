@@ -272,13 +272,12 @@ def make_hiddens(network, prev_hidden):
     return new_hiddens
 
 def smash_networks(network_list):
-    for network in network_list:
-        for layer in network.layers:
-            print layer.size
     new_architecture = []
+    new_architecture.append(network_list[0].layers[0].size)
     for network in network_list:
-        new_architecture.append(network.layers[0].size)
+        new_architecture.append(network.layers[1].size + 1)
     new_architecture.append(network_list[-1].layers[-1].size)
+    print new_architecture
     total_net = MLP(*new_architecture)
     for idx, network in enumerate(network_list):
         new_weights = np.zeros((network.layers[0].size, network.layers[1].size + 1))
@@ -287,8 +286,10 @@ def smash_networks(network_list):
             for y in xrange(network.weights[0].shape[1]):
                 new_weights[x,y] = network.weights[0][x,y]
         total_net.weights[idx] = new_weights
+        print new_weights.shape
     last_net = network_list[-1]
     last_weights = np.zeros((last_net.layers[1].size + 1, last_net.layers[2].size))
+    print last_weights.shape
     for x in xrange(last_net.weights[-1].shape[0]):
         for y in xrange(last_net.weights[-1].shape[1]):
             last_weights[x,y] = last_net.weights[-1][x,y]
@@ -338,7 +339,7 @@ def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num
 if __name__ == '__main__':
     num_hiddens = 50
     sparsities = [0]
-    test_deep_layerwise_sparse(num_layers=2, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=10000, num_hiddens=num_hiddens)
+    test_deep_layerwise_sparse(num_layers=2, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=4000, num_hiddens=num_hiddens)
     # 785 200 10
 
     # 201 200 10
