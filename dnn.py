@@ -301,6 +301,7 @@ def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num
     total_begin_time = time.clock()
     samples, dims = create_mnist_samples()
     networks = []
+    tests = []
     previous_hiddens = [samples]
     for network_idx in range(num_layers):
         curr_hiddens = previous_hiddens[-1]
@@ -332,11 +333,14 @@ def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num
             curr_network.propagate_backward(curr_hiddens['output'][i])
         previous_hiddens.append(make_hiddens(curr_network, curr_hiddens))
         networks.append(curr_network)
-        print "test: ", test_network(curr_network, curr_hiddens[40020:45000])
+        test_val = test_network(curr_network, curr_hiddens[40020:45000])
+        print "test: ", test_val
+        tests.append(test_val)
     final_network = smash_networks(networks)
     print "test: ", test_network(final_network, samples[40020:45000])
+    print "all tests: ", tests
 
 if __name__ == '__main__':
-    num_hiddens = 2000
+    num_hiddens = 200
     sparsities = [0]
-    test_deep_layerwise_sparse(num_layers=10, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=40000, num_hiddens=num_hiddens)
+    test_deep_layerwise_sparse(num_layers=10, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=10000, num_hiddens=num_hiddens)
