@@ -343,4 +343,4 @@ def test_deep_layerwise_sparse(num_layers, sparsity_percentages, num_burnin, num
 if __name__ == '__main__':
     num_hiddens = 200
     sparsities = [0]
-    test_deep_layerwise_sparse(num_layers=10, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=10000, num_hiddens=num_hiddens)
+    test_deep_layerwise_sparse(num_layers=50, sparsity_percentages=sparsities, num_burnin=0.0, num_iters=10000, num_hiddens=num_hiddens)
